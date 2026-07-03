@@ -1,0 +1,11 @@
+config BR2_PACKAGE_FARMHASH
+	bool "farmhash"
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  FarmHash is a family of very fast, non-cryptographic
+	  hash functions for strings and other data.
+
+	  https://github.com
+
+comment "farmhash needs a toolchain w/ C++"
+	depends on !BR2_INSTALL_LIBSTDCPP

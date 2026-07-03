@@ -1,0 +1,8 @@
+
+menu "TensorFlow Runtime Libraries"
+
+source "$BR2_EXTERNAL_EXTPACK_PATH/package/tensorflow-lite/Config.in"
+source "$BR2_EXTERNAL_EXTPACK_PATH/package/farmhash/Config.in"
+
+endmenu
+
