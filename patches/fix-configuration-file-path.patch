@@ -1,0 +1,75 @@
+From c34289e3e909d7ae45c665902875e69847f9f3ad Mon Sep 17 00:00:00 2001
+From: BV20 TWJiang <twjiang@nuvoton.com>
+Date: Fri, 3 Jul 2026 14:01:37 +0800
+Subject: [PATCH] fix configuration file paths for out-of-tree builds
+
+Ensure configuration file paths point to the correct directory when building out-of-tree.
+
+Buildroot natively supports out-of-tree building. By default, all build artifacts are stored
+in the 'output' directory within the Buildroot tree. However, during an out-of-tree build,
+the Buildroot .config file is stored directly inside the custom output directory. This means
+must resolve to that output directory.
+---
+ Makefile                                          | 4 ++--
+ boot/arm-trusted-firmware/arm-trusted-firmware.mk | 8 ++++----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 508f901a..8a7c3c24 100644
+--- a/Makefile
++++ b/Makefile
+@@ -229,7 +229,7 @@ LEGAL_WARNINGS = $(LEGAL_INFO_DIR)/.warnings
+ LEGAL_REPORT = $(LEGAL_INFO_DIR)/README
+ 
+ BR2_CONFIG = $(CONFIG_DIR)/.config
+-BR2_UBOOT_CONFIG = $(CONFIG_DIR)/output/build/uboot-custom/.config
++BR2_UBOOT_CONFIG = $(BUILD_DIR)/uboot-custom/.config
+ 
+ # Pull in the user's configuration file
+ ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+@@ -981,7 +981,7 @@ gconfig: $(BUILD_DIR)/buildroot-config/gconf outputmakefile
+ 
+ menuconfig: $(BUILD_DIR)/buildroot-config/mconf outputmakefile
+ 	@$(COMMON_CONFIG_ENV) $< $(CONFIG_CONFIG_IN)
+-	@if grep -q "6_6_VERSION=y" $(@D)/.config; then \
++	@if grep -q "6_6_VERSION=y" $(CONFIG_DIR)/.config; then \
+ 		sed -i "s/CUSTOM_5_10=y/CUSTOM_6_6=y/" $(BR2_CONFIG); \
+ 		sed -i "s/CUSTOM_6_6 is not set/CUSTOM_5_10 is not set/" $(BR2_CONFIG); \
+ 	else \
+diff --git a/boot/arm-trusted-firmware/arm-trusted-firmware.mk b/boot/arm-trusted-firmware/arm-trusted-firmware.mk
+index bb0b67a7..df348245 100644
+--- a/boot/arm-trusted-firmware/arm-trusted-firmware.mk
++++ b/boot/arm-trusted-firmware/arm-trusted-firmware.mk
+@@ -202,25 +202,25 @@ define ARM_TRUSTED_FIRMWARE_BUILD_FIPTOOL
+ 
+ 	if [ "${BR2_NUVOTON_MA35D1}" == "y" ] && [ "${BR2_NUVOTON_MA35D1_D0}" == "y" ]; then \
+ 	if [ "${TFA_CPU650_CUSTOM_DDR}" == "y" ]; then \
+-		cp $(BASE_DIR)/../board/nuvoton/ma35d0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,ma35d1)/include/custom_ddr.h; \
++		cp $(TOPDIR)/board/nuvoton/ma35d0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,ma35d1)/include/custom_ddr.h; \
+ 	fi \
+ 	fi
+ 
+ 	if [ "${BR2_NUVOTON_MA35D1}" == "y" ] && ! [ "${BR2_NUVOTON_MA35D1_D0}" == "y" ]; then \
+ 	if [ "${TFA_CPU800_CUSTOM_DDR}" == "y" ] || [ "${TFA_CPU1G_CUSTOM_DDR}" == "y" ]; then \
+-		cp $(BASE_DIR)/../board/nuvoton/ma35d1/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
++		cp $(TOPDIR)/board/nuvoton/ma35d1/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
+ 	fi \
+ 	fi
+ 
+ 	if [ "${BR2_NUVOTON_MA35D0}" == "y" ]; then \
+ 	if [ "${TFA_MA35D0_CPU650_CUSTOM_DDR}" == "y" ]; then \
+-		cp $(BASE_DIR)/../board/nuvoton/ma35d0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
++		cp $(TOPDIR)/board/nuvoton/ma35d0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
+ 	fi \
+ 	fi
+ 
+ 	if [ "${BR2_NUVOTON_MA35H0}" == "y" ]; then \
+ 	if [ "${TFA_MA35H0_CPU650_CUSTOM_DDR}" == "y" ]; then \
+-		cp $(BASE_DIR)/../board/nuvoton/ma35h0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
++		cp $(TOPDIR)/board/nuvoton/ma35h0/ddr/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_CUSTOM_DDR)) $(@D)/plat/nuvoton/$(call qstrip,$(BR2_TARGET_ARM_TRUSTED_FIRMWARE_PLATFORM))/include/custom_ddr.h; \
+ 	fi \
+ 	fi
+ endef
+-- 
+2.43.0
+
