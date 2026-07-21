@@ -81,6 +81,10 @@ define TENSORFLOW_LITE_INSTALL_STAGING_CMDS
 	cp -r $(@D)/tensorflow/lite/*.h $(STAGING_DIR)/usr/include/tensorflow/lite/
 endef
 
+define TENSORFLOW_LITE_INSTALL_TARGET_CMDS
+	$(INSTALL) -D -m 0755 $(@D)/tensorflow/lite/libtensorflow-lite.so $(TARGET_DIR)/usr/lib/libtensorflow-lite.so
+endef
+
 define TENSORFLOW_LITE_POST_INSTALL_TARGET_RM_FILES
 	rm -rf $(TARGET_DIR)/usr/include
 endef
