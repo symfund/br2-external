@@ -24,12 +24,15 @@ TENSORFLOW_LITE_DEPENDENCIES = host-flatbuffers flatbuffers eigen libabseil-cpp 
 # NOTE: We keep TENSORFLOW_SOURCE_DIR=$(@D) so CMake uses your extracted source 
 # archive and doesn't re-download the entire 1GB+ main Git repository history.
 TENSORFLOW_LITE_CONF_OPTS = \
+	-DCMAKE_C_FLAGS="$(TARGET_CFLAGS) -march=armv8-a+simd+crypto -mcpu=cortex-a35 -Wno-comment" \
+	-DCMAKE_CXX_FLAGS="$(TARGET_CXXFLAGS) -march=armv8-a+simd+crypto -mcpu=cortex-a35 -Wno-comment" \
 	-DTENSORFLOW_SOURCE_DIR=$(@D) \
 	-DTFLITE_ENABLE_XNNPACK=ON \
 	-DTFLITE_ENABLE_RUY=ON \
 	-DTFLITE_ENABLE_MMAP=ON \
 	-DTFLITE_ENABLE_GPU=OFF \
 	-DBUILD_SHARED_LIBS=ON \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 	-DFETCHCONTENT_QUIET=OFF \
 	-DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
 	-Dabsl_DIR=$(STAGING_DIR)/usr/lib/cmake/absl \
