@@ -1,4 +1,24 @@
 
+menu "User Provided Source"
+
+config USR_ARM_TRUSTED_FIRMWARE_SRCDIR
+        string "Arm Trusted Firmware source directory"
+        default ""
+
+config USR_UBOOT_SRCDIR
+	string "U-Boot source directory"
+	default ""
+
+config USR_OPTEE_OS_SRCDIR
+	string "optee-os source directory"
+	default ""
+
+config USR_LINUX_SRCDIR
+	string "Linux source directory"
+	default ""
+
+endmenu
+
 menu "TensorFlow Runtime Libraries"
 
 source "$BR2_EXTERNAL_EXTPACK_PATH/package/tensorflow-lite/Config.in"
@@ -6,3 +26,4 @@ source "$BR2_EXTERNAL_EXTPACK_PATH/package/farmhash/Config.in"
 
 endmenu
 
+source "$BR2_EXTERNAL_EXTPACK_PATH/package/adb/Config.in"

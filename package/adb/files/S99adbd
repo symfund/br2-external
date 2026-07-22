@@ -1,0 +1,179 @@
+#!/bin/sh
+# Ensure all system tools can be found during Monit hooks
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+export PATH
+
+PIDFILE="/var/run/adbd.pid"
+BYPASS_LOCK="/var/run/monit_bypass.lock"
+GADGET_DIR="/sys/kernel/config/usb_gadget/g1"
+
+# Extract the UDC name safely
+UDC_NAME=$(ls /sys/class/udc 2>/dev/null | head -n 1)
+
+bind_udc() {
+	if [ -n "$UDC_NAME" ]; then
+		RETRY=0
+		while [ $RETRY -lt 5 ]; do
+			# Verify if it is already bound to avoid double binding errors
+			if [ -f "$GADGET_DIR/UDC" ] && grep -q "$UDC_NAME" "$GADGET_DIR/UDC" 2>/dev/null; then
+				echo "ADB Gadget successfully stabilized on $UDC_NAME."
+				return 0
+			fi
+			echo "$UDC_NAME" > "$GADGET_DIR/UDC" 2>/dev/null
+			if [ $? -eq 0 ]; then
+				echo "ADB Gadget bound successfully to $UDC_NAME."
+				return 0
+			fi
+			RETRY=$((RETRY + 1))
+			sleep 1
+		done
+		echo "Error: Failed to bind to UDC after 5 retries!" >&2
+		return 1
+	else
+		echo "Error: No physical UDC controller detected!" >&2
+		return 1
+	fi
+}
+
+start_gadget() {
+	echo "Initializing ADB Gadget Topology..."
+
+	if ! mountpoint -q /sys/kernel/config; then
+		mount -t configfs none /sys/kernel/config
+	fi
+
+	mkdir -p "$GADGET_DIR"
+	cd "$GADGET_DIR" || exit 1
+
+	echo 0x18d1 > idVendor
+	echo 0x4e42 > idProduct
+
+	mkdir -p strings/0x409
+	echo "SN0123456789" > strings/0x409/serialnumber
+	echo "Nuvoton" > strings/0x409/manufacturer
+	echo "ADB Device" > strings/0x409/product
+	
+	mkdir -p functions/ffs.adb
+	mkdir -p configs/c.1
+
+	if [ ! -L "configs/c.1/ffs.adb" ]; then
+		ln -sf functions/ffs.adb configs/c.1
+	fi
+
+	mkdir -p /dev/usb-ffs/adb
+	if ! mountpoint -q /dev/usb-ffs/adb; then
+		mount -t functionfs adb /dev/usb-ffs/adb
+	fi
+
+	# Kill any zombie daemons or sockets clinging onto port 5037
+	killall -q -9 adbd 2>/dev/null
+	if command -v fuser >/dev/null 2>&1; then
+		fuser -k -n tcp 5037 >/dev/null 2>&1
+	fi
+
+	/usr/bin/adbd &
+	echo $! > "$PIDFILE"
+
+	# Wait dynamically for the control endpoint file node to appear
+	LOOP_COUNT=0
+	while [ ! -f /dev/usb-ffs/adb/ep0 ] && [ $LOOP_COUNT -lt 30 ]; do
+		usleep 100000
+		LOOP_COUNT=$((LOOP_COUNT + 1))
+	done
+
+	bind_udc
+}
+
+stop_gadget() {
+	echo "Tearing Down ADB Gadget Configuration..."
+	rm -f "$PIDFILE"
+
+	# 1. Unbind the controller to freeze connection links immediately
+	if [ -f "$GADGET_DIR/UDC" ] && [ -n "$(cat "$GADGET_DIR/UDC" 2>/dev/null)" ]; then
+		echo "" > "$GADGET_DIR/UDC" 2>/dev/null
+		sleep 1
+	fi
+
+	# 2. Hard kill the daemon process threads
+	killall -q -9 adbd 2>/dev/null
+
+	# 3. Clean out filesystem structures in order
+	if [ -d "$GADGET_DIR" ]; then
+		cd "$GADGET_DIR" || exit 1
+		rm -f configs/c.1/ffs.adb
+		[ -d configs/c.1/strings/0x409 ] && rmdir configs/c.1/strings/0x409
+		[ -d configs/c.1 ] && rmdir configs/c.1
+		[ -d strings/0x409 ] && rmdir strings/0x409
+		rmdir functions/ffs.adb 2>/dev/null
+	fi
+
+	cd /
+	if mountpoint -q /dev/usb-ffs/adb; then
+		umount -l /dev/usb-ffs/adb 2>/dev/null
+	fi
+	[ -d "$GADGET_DIR" ] && rmdir "$GADGET_DIR" 2>/dev/null
+}
+
+case "$1" in
+	start)
+		# HARD RE-ENTRANCE SAFETY CHECK
+		if [ -f "$BYPASS_LOCK" ] && [ "$MONIT_INTERNAL" != "1" ]; then
+			echo "Script execution locked by a live transition. Exiting."
+			exit 0
+		fi
+		start_gadget
+		;;
+
+	stop)
+		stop_gadget
+		;;
+
+	restart|reload)
+		# Guard file protection block to eliminate overlapping Monit executions
+		if [ -f "$BYPASS_LOCK" ]; then
+			echo "Restart already in progress. Exiting."
+			exit 0
+		fi
+		touch "$BYPASS_LOCK"
+
+		echo "Performing a rapid Hotplug Connection Reset..."
+		
+		# LIGHTWEIGHT CABLE RESET (Zero folder teardown)
+		# 1. Strip the hardware driver down
+		if [ -f "$GADGET_DIR/udc" ]; then
+			echo "" > "$GADGET_DIR/udc" 2>/dev/null
+		fi
+		
+		# 2. Terminate the active daemon holding dead sockets
+		killall -q -9 adbd 2>/dev/null
+		sleep 1
+
+		# 3. Force release port 5037 hooks
+		if command -v fuser >/dev/null 2>&1; then
+			fuser -k -n tcp 5037 >/dev/null 2>&1
+		fi
+
+		# 4. Relaunch adbd directly on top of the existing ConfigFS setup
+		/usr/bin/adbd &
+		echo $! > "$PIDFILE"
+
+		# Give the daemon time to recreate endpoint loops
+		LOOP_COUNT=0
+		while [ ! -f /dev/usb-ffs/adb/ep0 ] && [ $LOOP_COUNT -lt 30 ]; do
+			usleep 100000
+			LOOP_COUNT=$((LOOP_COUNT + 1))
+		done
+
+		# Allow physical bouncing to clear
+		sleep 3
+		bind_udc
+
+		rm -f "$BYPASS_LOCK"
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac
+
+exit 0

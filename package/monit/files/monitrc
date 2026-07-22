@@ -1,0 +1,9 @@
+include /etc/monit.d/*
+
+set httpd port 2812
+    use address localhost  # Only accept connections from your board itself
+    allow localhost        # Allow the local monit CLI command line tool to talk to the daemon
+    allow admin:monit      # Set up local baseline credentials
+
+
+

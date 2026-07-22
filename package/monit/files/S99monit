@@ -1,0 +1,58 @@
+#!/bin/sh
+#
+# Start/stop monit daemon
+#
+
+DAEMON="monit"
+PIDFILE="/var/run/monit.pid"
+
+# Define the exact execution arguments requested
+DAEMON_ARGS="-d 3"
+
+start() {
+    printf "Starting %s: " "$DAEMON"
+    # start-stop-daemon handles background execution and PID tracking safely
+    start-stop-daemon -S -q -x /usr/bin/monit -- $DAEMON_ARGS
+    status=$?
+    if [ $status -eq 0 ]; then
+        echo "OK"
+    else
+        echo "FAIL"
+    fi
+    return $status
+}
+
+stop() {
+    printf "Stopping %s: " "$DAEMON"
+    start-stop-daemon -K -q -x /usr/bin/monit
+    status=$?
+    if [ $status -eq 0 ]; then
+        echo "OK"
+    else
+        echo "FAIL"
+    fi
+    return $status
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        restart
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?

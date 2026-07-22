@@ -1,0 +1,19 @@
+menuconfig BR2_PACKAGE_ADB
+        bool "Android Debug Bridge (adbd)"
+        select BR2_PACKAGE_ANDROID_TOOLS
+	select BR2_PACKAGE_MONIT
+        help
+          This package for ADBD.
+
+if BR2_PACKAGE_ADB
+
+config BR2_PACKAGE_ADB_SERIAL
+        bool "serial"
+
+config BR2_PACKAGE_ADB_NETWORK
+	bool "ethernet"
+
+config BR2_PACKAGE_ADB_STORAGE
+	bool "storage"
+
+endif
