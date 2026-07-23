@@ -1,0 +1,7 @@
+TFLITE_EVALUATOR_VERSION = 1.0.0
+TFLITE_EVALUATOR_SITE = $(BR2_EXTERNAL_EXTPACK_PATH)/package/tflite-evaluator/src
+TFLITE_EVALUATOR_SITE_METHOD = local
+
+TFLITE_EVALUATOR_DEPENDENCIES = tensorflow-lite
+
+$(eval $(cmake-package))

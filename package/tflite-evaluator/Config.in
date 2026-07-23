@@ -1,0 +1,7 @@
+menu "TensorFlow Lite Tools & Demos"
+
+config BR2_PACKAGE_TFLITE_EVALUATOR
+	bool "tflite-evaluator"
+	depends on BR2_PACKAGE_TENSORFLOW_LITE
+
+endmenu
