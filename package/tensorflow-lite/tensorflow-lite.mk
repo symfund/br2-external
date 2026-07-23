@@ -79,13 +79,27 @@ endef
 TENSORFLOW_LITE_PRE_BUILD_HOOKS += TENSORFLOW_LITE_PATCH_PROTO_RULES
 
 define TENSORFLOW_LITE_INSTALL_STAGING_CMDS
+	# 1. Install the primary shared library
 	$(INSTALL) -D -m 0755 $(@D)/tensorflow/lite/libtensorflow-lite.so $(STAGING_DIR)/usr/lib/libtensorflow-lite.so
+	
+	# 2. Ensure destination structural frameworks exist
 	mkdir -p $(STAGING_DIR)/usr/include/tensorflow/lite
-	cp -r $(@D)/tensorflow/lite/*.h $(STAGING_DIR)/usr/include/tensorflow/lite/
+	mkdir -p $(STAGING_DIR)/usr/include/tensorflow/compiler
+	
+	# 3. Synchronize headers
+	$(call SYSTEM_RSYNC,$(@D)/tensorflow/lite,$(STAGING_DIR)/usr/include/tensorflow/lite,--include='*/' --include='*.h' --exclude='*')
+	$(call SYSTEM_RSYNC,$(@D)/tensorflow/compiler,$(STAGING_DIR)/usr/include/tensorflow/compiler,--include='*/' --include='*.h' --exclude='*')
+	
+	# 4. FIXED: Flatten and install all companion libraries from internal build subdirectories straight into /usr/lib/
+	find $(@D)/tensorflow/lite/ -name "*.so*" -type f -exec $(INSTALL) -m 0755 {} $(STAGING_DIR)/usr/lib/ \;
 endef
 
 define TENSORFLOW_LITE_INSTALL_TARGET_CMDS
+	# Install the main shared library to the target filesystem
 	$(INSTALL) -D -m 0755 $(@D)/tensorflow/lite/libtensorflow-lite.so $(TARGET_DIR)/usr/lib/libtensorflow-lite.so
+	
+	# FIXED: Flatten and install companion libraries to target rootfs so the loader finds them at run-time
+	find $(@D)/tensorflow/lite/ -name "*.so*" -type f -exec $(INSTALL) -m 0755 {} $(TARGET_DIR)/usr/lib/ \;
 endef
 
 define TENSORFLOW_LITE_POST_INSTALL_TARGET_RM_FILES
