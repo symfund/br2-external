@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 
     // Configure XNNPACK Delegate for multi-threaded performance
     TfLiteXNNPackDelegateOptions xnnpack_options = TfLiteXNNPackDelegateOptionsDefault();
-    xnnpack_options.num_threads = 4; 
+    xnnpack_options.num_threads = 2; 
 
     std::unique_ptr<TfLiteDelegate, void(*)(TfLiteDelegate*)> xnnpack_delegate(
         TfLiteXNNPackDelegateCreate(&xnnpack_options),
