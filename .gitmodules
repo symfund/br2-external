@@ -34,3 +34,7 @@
 [submodule "models/magic_wand"]
 	path = models/magic_wand
 	url = https://github.com/petewarden/magic_wand.git
+[submodule "src/stb"]
+	path = src/stb
+	url = https://github.com/nothings/stb.git
+	branch = master
