@@ -1,3 +1,6 @@
+comment "tensorflow-lite needs a toolchain w/ C++, threads, gcc >= 9"
+        depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS || !BR2_TOOLCHAIN_GCC_AT_LEAST_9
+
 config BR2_PACKAGE_TENSORFLOW_LITE
 	bool "tensorflow-lite"
 	depends on BR2_INSTALL_LIBSTDCPP
@@ -15,6 +18,18 @@ config BR2_PACKAGE_TENSORFLOW_LITE
 
 	  https://tensorflow.org
 
-comment "tensorflow-lite needs a toolchain w/ C++, threads, gcc >= 9"
-	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS || !BR2_TOOLCHAIN_GCC_AT_LEAST_9
+if BR2_PACKAGE_TENSORFLOW_LITE
 
+menu "TensorFlow Lite Tools & Demos"
+
+config BR2_PACKAGE_TFLITE_EVALUATOR
+        bool "TFLite Evaluator"
+        depends on BR2_PACKAGE_TENSORFLOW_LITE
+
+config BR2_PACKAGE_IMAGE_CLASSIFIER
+        bool "Image Classifier"
+        depends on BR2_PACKAGE_TENSORFLOW_LITE
+
+endmenu
+
+endif
